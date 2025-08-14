@@ -113,15 +113,69 @@
         }
 
         .exam-table tr:hover {
-            background-color: #f8f9fa;
+            opacity: 0.8;
         }
 
-        .exam-table tr:nth-child(even) {
-            background-color: #fafbfc;
+        .exam-table tr.past-date {
+            color: #999;
+            text-decoration: line-through;
+            background-color: white !important;
         }
 
-        .exam-table tr:nth-child(even):hover {
-            background-color: #f1f3f4;
+        .exam-table tr.past-date:hover {
+            background-color: #f5f5f5 !important;
+        }
+
+        .exam-table tr.active-even {
+            background-color: #b7d2e1;
+        }
+
+        .exam-table tr.active-odd {
+            background-color: #b7e1cd;
+        }
+
+        .exam-table tr.active-even:hover {
+            background-color: #a3c4d9;
+        }
+
+        .exam-table tr.active-odd:hover {
+            background-color: #a3d9bb;
+        }
+
+        .title-section {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .main-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .general-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .general-info-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .general-info-content {
+            color: #6c757d;
+            line-height: 1.5;
         }
 
         .no-results {
@@ -174,6 +228,19 @@
             .info-banner {
                 padding: 10px 20px;
             }
+
+            .title-section {
+                padding: 15px 20px;
+            }
+
+            .title-section > div:first-child {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+            }
+
+            .main-title {
+                font-size: 1.2rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -199,6 +266,8 @@
             <p>Consulta horarios y fechas actualizadas</p>
         </div>
         
+        <div id="titleSection" style="display: none;"></div>
+
         <div class="info-banner">
             ℹ️ Utiliza el buscador para filtrar por materia, docente, fecha o cualquier información específica
         </div>
@@ -235,9 +304,65 @@
     <script>
         let allData = [];
         let filteredData = [];
+        let titleData = {};
 
         // URL de tu Google Sheet (formato CSV)
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVNeNi7qQE2PotMhuWitzIh9y8M0oFLPC3ng7blHdDLScjzpx9WQPmXan6tL-d11hfQqTYW0SHamnp/pub?gid=0&single=true&output=csv&range=A1:D229';
+
+        function parseDate(dateString) {
+            if (!dateString || dateString.trim() === '') return null;
+            
+            // Try different date formats
+            const formats = [
+                // DD/MM/YYYY or DD/MM/YY
+                /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/,
+                // DD-MM-YYYY or DD-MM-YY  
+                /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/,
+                // YYYY/MM/DD
+                /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/,
+                // YYYY-MM-DD
+                /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+            ];
+            
+            for (let format of formats) {
+                const match = dateString.trim().match(format);
+                if (match) {
+                    let day, month, year;
+                    
+                    if (format.source.startsWith('^(\\d{4})')) {
+                        // YYYY first formats
+                        year = parseInt(match[1]);
+                        month = parseInt(match[2]);
+                        day = parseInt(match[3]);
+                    } else {
+                        // DD first formats
+                        day = parseInt(match[1]);
+                        month = parseInt(match[2]);
+                        year = parseInt(match[3]);
+                        
+                        // Handle 2-digit years
+                        if (year < 100) {
+                            year += year < 50 ? 2000 : 1900;
+                        }
+                    }
+                    
+                    return new Date(year, month - 1, day);
+                }
+            }
+            
+            return null;
+        }
+
+        function isDatePast(dateString) {
+            const date = parseDate(dateString);
+            if (!date) return false;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            date.setHours(0, 0, 0, 0);
+            
+            return date < today;
+        }
 
         async function loadData() {
             try {
@@ -271,8 +396,24 @@
 
                 // Filter out empty rows
                 allData = data.filter(row => row.some(cell => cell && cell.trim() !== ''));
-                filteredData = [...allData];
+                
+                // Extract title information
+                if (allData.length >= 5) {
+                    titleData = {
+                        titleA1: allData[0] ? allData[0][0] : '',
+                        titleBCD1: allData[0] ? (allData[0][1] + ' ' + (allData[0][2] || '') + ' ' + (allData[0][3] || '')).trim() : '',
+                        infoA2: allData[1] ? allData[1][0] : '',
+                        infoBCD2: allData[1] ? (allData[1][1] + ' ' + (allData[1][2] || '') + ' ' + (allData[1][3] || '')).trim() : '',
+                        titleABCD3: allData[2] ? (allData[2][0] + ' ' + (allData[2][1] || '') + ' ' + (allData[2][2] || '') + ' ' + (allData[2][3] || '')).trim() : '',
+                        infoABCD4: allData[3] ? (allData[3][0] + ' ' + (allData[3][1] || '') + ' ' + (allData[3][2] || '') + ' ' + (allData[3][3] || '')).trim() : '',
+                        headers: allData[4] || ['Asignaturas', 'Fecha', 'Hora', 'Aula'],
+                        tableData: allData.slice(5) // From row 6 onwards (index 5)
+                    };
+                }
+                
+                filteredData = titleData.tableData || [];
 
+                displayTitles();
                 displayData();
                 document.getElementById('loadingMessage').style.display = 'none';
                 document.getElementById('examTable').style.display = 'table';
@@ -281,6 +422,35 @@
                 console.error('Error loading data:', error);
                 document.getElementById('loadingMessage').style.display = 'none';
                 document.getElementById('errorMessage').style.display = 'block';
+            }
+        }
+
+        function displayTitles() {
+            const titleSection = document.getElementById('titleSection');
+            
+            if (titleData.titleA1 || titleData.titleBCD1) {
+                titleSection.style.display = 'block';
+                titleSection.innerHTML = `
+                    <div class="title-section">
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                ${titleData.titleA1 ? `<div class="main-title">${titleData.titleA1}</div>` : ''}
+                                ${titleData.infoA2 ? `<div class="subtitle">${titleData.infoA2}</div>` : ''}
+                            </div>
+                            <div>
+                                ${titleData.titleBCD1 ? `<div class="main-title">${titleData.titleBCD1}</div>` : ''}
+                                ${titleData.infoBCD2 ? `<div class="subtitle">${titleData.infoBCD2}</div>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${titleData.titleABCD3 || titleData.infoABCD4 ? `
+                            <div class="general-info">
+                                ${titleData.titleABCD3 ? `<div class="general-info-title">${titleData.titleABCD3}</div>` : ''}
+                                ${titleData.infoABCD4 ? `<div class="general-info-content">${titleData.infoABCD4}</div>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
             }
         }
 
@@ -301,30 +471,43 @@
             document.getElementById('examTable').style.display = 'table';
             document.getElementById('noResults').style.display = 'none';
 
-            // Create headers (assuming first row contains headers or create generic ones)
-            const maxColumns = Math.max(...filteredData.map(row => row.length));
-            const headers = filteredData[0] && filteredData[0].every(cell => cell && cell.trim() !== '') ? 
-                filteredData[0] : 
-                Array.from({length: maxColumns}, (_, i) => `Columna ${i + 1}`);
+            // Create headers using the data from row 5
+            const headers = titleData.headers || ['Asignaturas', 'Fecha', 'Hora', 'Aula'];
 
             headers.forEach(header => {
                 const th = document.createElement('th');
-                th.textContent = header || `Columna ${headers.indexOf(header) + 1}`;
+                th.textContent = header || '';
                 tableHeader.appendChild(th);
             });
 
-            // Create data rows (skip first row if it's headers)
-            const dataRows = filteredData[0] && filteredData[0].every(cell => cell && cell.trim() !== '') ? 
-                filteredData.slice(1) : filteredData;
-
-            dataRows.forEach(row => {
+            // Create data rows (from row 6 onwards)
+            let activeRowIndex = 0;
+            
+            filteredData.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                for (let i = 0; i < maxColumns; i++) {
+                // Get date from column B (index 1) for conditional formatting
+                const dateValue = row[1] || '';
+                const isPast = isDatePast(dateValue);
+                
+                if (isPast) {
+                    tr.classList.add('past-date');
+                } else {
+                    // Apply alternating colors only to active rows
+                    if (activeRowIndex % 2 === 0) {
+                        tr.classList.add('active-even');
+                    } else {
+                        tr.classList.add('active-odd');
+                    }
+                    activeRowIndex++;
+                }
+                
+                // Create cells for each column
+                headers.forEach((header, i) => {
                     const td = document.createElement('td');
                     td.textContent = row[i] || '';
                     tr.appendChild(td);
-                }
+                });
                 
                 tableBody.appendChild(tr);
             });
@@ -334,9 +517,9 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             
             if (searchTerm === '') {
-                filteredData = [...allData];
+                filteredData = titleData.tableData || [];
             } else {
-                filteredData = allData.filter(row => 
+                filteredData = (titleData.tableData || []).filter(row => 
                     row.some(cell => 
                         cell && cell.toString().toLowerCase().includes(searchTerm)
                     )
