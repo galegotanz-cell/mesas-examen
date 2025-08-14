@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesas de Examen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-container {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box:focus {
+            border-color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #e74c3c;
+            font-size: 18px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 0 30px 30px;
+        }
+
+        .exam-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+
+        .exam-table th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .exam-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f3f4;
+            vertical-align: top;
+            font-size: 14px;
+        }
+
+        .exam-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .exam-table tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+
+        .exam-table tr:nth-child(even):hover {
+            background-color: #f1f3f4;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .info-banner {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px 30px;
+            margin: 0;
+            color: #1565c0;
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .search-container {
+                padding: 15px 20px;
+            }
+
+            .table-container {
+                padding: 0 20px 20px;
+            }
+
+            .exam-table {
+                font-size: 12px;
+            }
+
+            .exam-table th,
+            .exam-table td {
+                padding: 8px 6px;
+            }
+
+            .info-banner {
+                padding: 10px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .exam-table {
+                font-size: 11px;
+            }
+
+            .exam-table th,
+            .exam-table td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Mesas de Examen</h1>
+            <p>Consulta horarios y fechas actualizadas</p>
+        </div>
+        
+        <div class="info-banner">
+            ℹ️ Utiliza el buscador para filtrar por materia, docente, fecha o cualquier información específica
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por materia, docente, fecha...">
+        </div>
+
+        <div id="loadingMessage" class="loading">
+            ⏳ Cargando datos de las mesas de examen...
+        </div>
+
+        <div id="errorMessage" class="error" style="display: none;">
+            ❌ Error al cargar los datos. Por favor, intenta recargar la página.
+        </div>
+
+        <div class="table-container">
+            <table id="examTable" class="exam-table" style="display: none;">
+                <thead>
+                    <tr id="tableHeader">
+                        <!-- Headers will be populated by JavaScript -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+            <div id="noResults" class="no-results" style="display: none;">
+                🔍 No se encontraron resultados para tu búsqueda
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+
+        // URL de tu Google Sheet (formato CSV)
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVNeNi7qQE2PotMhuWitzIh9y8M0oFLPC3ng7blHdDLScjzpx9WQPmXan6tL-d11hfQqTYW0SHamnp/pub?gid=0&single=true&output=csv&range=A1:D229';
+
+        async function loadData() {
+            try {
+                const response = await fetch(SHEET_URL);
+                const csvText = await response.text();
+                
+                const rows = csvText.split('\n');
+                const data = rows.map(row => {
+                    // Simple CSV parsing - handles basic cases
+                    const columns = [];
+                    let currentColumn = '';
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"' && (i === 0 || row[i-1] === ',')) {
+                            inQuotes = true;
+                        } else if (char === '"' && inQuotes && (i === row.length - 1 || row[i+1] === ',')) {
+                            inQuotes = false;
+                        } else if (char === ',' && !inQuotes) {
+                            columns.push(currentColumn.trim());
+                            currentColumn = '';
+                        } else {
+                            currentColumn += char;
+                        }
+                    }
+                    columns.push(currentColumn.trim());
+                    
+                    return columns;
+                });
+
+                // Filter out empty rows
+                allData = data.filter(row => row.some(cell => cell && cell.trim() !== ''));
+                filteredData = [...allData];
+
+                displayData();
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('examTable').style.display = 'table';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        }
+
+        function displayData() {
+            const tableHeader = document.getElementById('tableHeader');
+            const tableBody = document.getElementById('tableBody');
+
+            // Clear existing content
+            tableHeader.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                document.getElementById('examTable').style.display = 'none';
+                document.getElementById('noResults').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('examTable').style.display = 'table';
+            document.getElementById('noResults').style.display = 'none';
+
+            // Create headers (assuming first row contains headers or create generic ones)
+            const maxColumns = Math.max(...filteredData.map(row => row.length));
+            const headers = filteredData[0] && filteredData[0].every(cell => cell && cell.trim() !== '') ? 
+                filteredData[0] : 
+                Array.from({length: maxColumns}, (_, i) => `Columna ${i + 1}`);
+
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header || `Columna ${headers.indexOf(header) + 1}`;
+                tableHeader.appendChild(th);
+            });
+
+            // Create data rows (skip first row if it's headers)
+            const dataRows = filteredData[0] && filteredData[0].every(cell => cell && cell.trim() !== '') ? 
+                filteredData.slice(1) : filteredData;
+
+            dataRows.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                for (let i = 0; i < maxColumns; i++) {
+                    const td = document.createElement('td');
+                    td.textContent = row[i] || '';
+                    tr.appendChild(td);
+                }
+                
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function filterData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                filteredData = [...allData];
+            } else {
+                filteredData = allData.filter(row => 
+                    row.some(cell => 
+                        cell && cell.toString().toLowerCase().includes(searchTerm)
+                    )
+                );
+            }
+            
+            displayData();
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', filterData);
+
+        // Load data when page loads
+        window.addEventListener('load', loadData);
+
+        // Auto-refresh every 5 minutes to get updates
+        setInterval(loadData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
