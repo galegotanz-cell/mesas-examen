@@ -93,10 +93,19 @@
             background: white;
         }
 
+        .title-section .main-title {
+            background-color: #8989eb;
+            color: white;
+            font-weight: bold;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
         .exam-table th {
-            background: #f8f9fa;
-            color: #495057;
-            font-weight: 600;
+            background: #b3b3f0;
+            color: #333;
+            font-weight: bold;
             padding: 15px 12px;
             text-align: left;
             border-bottom: 2px solid #dee2e6;
@@ -312,30 +321,40 @@
         function parseDate(dateString) {
             if (!dateString || dateString.trim() === '') return null;
             
-            // Try different date formats
+            const cleanDate = dateString.trim().replace(/\s+/g, ' ');
+            console.log('Parsing date:', cleanDate); // Debug
+            
+            // Try different date formats more specifically
             const formats = [
-                // DD/MM/YYYY or DD/MM/YY
-                /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/,
-                // DD-MM-YYYY or DD-MM-YY  
-                /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/,
+                // DD/MM/YYYY
+                /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+                // DD/MM/YY
+                /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/,
+                // DD-MM-YYYY
+                /^(\d{1,2})-(\d{1,2})-(\d{4})$/,
+                // DD-MM-YY  
+                /^(\d{1,2})-(\d{1,2})-(\d{2})$/,
+                // DD.MM.YYYY
+                /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/,
+                // DD.MM.YY
+                /^(\d{1,2})\.(\d{1,2})\.(\d{2})$/,
                 // YYYY/MM/DD
                 /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/,
                 // YYYY-MM-DD
                 /^(\d{4})-(\d{1,2})-(\d{1,2})$/
             ];
             
-            for (let format of formats) {
-                const match = dateString.trim().match(format);
+            for (let i = 0; i < formats.length; i++) {
+                const format = formats[i];
+                const match = cleanDate.match(format);
                 if (match) {
                     let day, month, year;
                     
-                    if (format.source.startsWith('^(\\d{4})')) {
-                        // YYYY first formats
+                    if (i >= 6) { // YYYY first formats
                         year = parseInt(match[1]);
                         month = parseInt(match[2]);
                         day = parseInt(match[3]);
-                    } else {
-                        // DD first formats
+                    } else { // DD first formats
                         day = parseInt(match[1]);
                         month = parseInt(match[2]);
                         year = parseInt(match[3]);
@@ -346,22 +365,37 @@
                         }
                     }
                     
-                    return new Date(year, month - 1, day);
+                    const parsedDate = new Date(year, month - 1, day);
+                    console.log('Parsed date:', parsedDate); // Debug
+                    return parsedDate;
                 }
             }
             
+            // Try native Date parsing as fallback
+            const nativeDate = new Date(cleanDate);
+            if (!isNaN(nativeDate.getTime())) {
+                console.log('Native parsed date:', nativeDate); // Debug
+                return nativeDate;
+            }
+            
+            console.log('Could not parse date:', cleanDate); // Debug
             return null;
         }
 
         function isDatePast(dateString) {
             const date = parseDate(dateString);
-            if (!date) return false;
+            if (!date) {
+                console.log('Date is null for:', dateString); // Debug
+                return false;
+            }
             
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             date.setHours(0, 0, 0, 0);
             
-            return date < today;
+            const isPast = date < today;
+            console.log('Date:', date, 'Today:', today, 'Is past:', isPast); // Debug
+            return isPast;
         }
 
         async function loadData() {
