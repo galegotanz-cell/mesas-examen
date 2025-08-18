@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FACULTAD DE CIENCIAS NATURALES Y CIENCIAS DE LA SALUD</title>
+    <title>Mesas de Examen</title>
     <style>
         * {
             margin: 0;
@@ -34,12 +34,29 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
+        }
+
+        .university-logo {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 80px;
+            height: 80px;
+            z-index: 10;
+            object-fit: contain;
+            border-radius: 50%;
+        }
+
+        .header-content {
+            margin-left: 100px;
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            font-weight: 300;
+            font-size: 1.8rem;
+            font-weight: bold;
             margin-bottom: 10px;
+            line-height: 1.3;
         }
 
         .header p {
@@ -210,11 +227,22 @@
             }
 
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.4rem;
             }
 
             .header {
                 padding: 20px;
+            }
+
+            .university-logo {
+                width: 60px;
+                height: 60px;
+                top: 10px;
+                left: 10px;
+            }
+
+            .header-content {
+                margin-left: 80px;
             }
 
             .search-container {
@@ -254,7 +282,18 @@
 
         @media (max-width: 480px) {
             .header h1 {
-                font-size: 1.5rem;
+                font-size: 1.2rem;
+            }
+
+            .university-logo {
+                width: 50px;
+                height: 50px;
+                top: 8px;
+                left: 8px;
+            }
+
+            .header-content {
+                margin-left: 65px;
             }
 
             .exam-table {
@@ -271,8 +310,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Mesas de Examen</h1>
-            <p>Consulta horarios y fechas actualizadas</p>
+            <!-- Logo de la Universidad - REEMPLAZA la URL con tu imagen -->
+            <img class="university-logo" src="URL_DE_TU_IMAGEN_DEL_LOGO" alt="Universidad Nacional de la Patagonia San Juan Bosco">
+            
+            <div class="header-content">
+                <h1>FACULTAD DE CIENCIAS NATURALES Y CIENCIAS DE LA SALUD</h1>
+                <p>📚 Mesas de Examen</p>
+            </div>
         </div>
         
         <div id="titleSection" style="display: none;"></div>
@@ -315,8 +359,8 @@
         let filteredData = [];
         let titleData = {};
 
-        // URL de tu Google Sheet (formato CSV)
-        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVNeNi7qQE2PotMhuWitzIh9y8M0oFLPC3ng7blHdDLScjzpx9WQPmXan6tL-d11hfQqTYW0SHamnp/pub?gid=0&single=true&output=csv&range=A1:D229';
+        // URL de tu Google Sheet (formato HTML para preservar mejor los datos)
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVNeNi7qQE2PotMhuWitzIh9y8M0oFLPC3ng7blHdDLScjzpx9WQPmXan6tL-d11hfQqTYW0SHamnp/pubhtml?gid=0&single=true&range=A1:D229&headers=false&chrome=false&widget=true';
 
         function parseDate(dateString) {
             if (!dateString || dateString.trim() === '') return null;
@@ -401,35 +445,32 @@
         async function loadData() {
             try {
                 const response = await fetch(SHEET_URL);
-                const csvText = await response.text();
+                const htmlText = await response.text();
                 
-                const rows = csvText.split('\n');
+                // Parse HTML to extract table data
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                const table = doc.querySelector('table');
+                
+                if (!table) {
+                    throw new Error('No table found in response');
+                }
+                
+                const rows = Array.from(table.querySelectorAll('tr'));
                 const data = rows.map(row => {
-                    // Simple CSV parsing - handles basic cases
-                    const columns = [];
-                    let currentColumn = '';
-                    let inQuotes = false;
-                    
-                    for (let i = 0; i < row.length; i++) {
-                        const char = row[i];
-                        if (char === '"' && (i === 0 || row[i-1] === ',')) {
-                            inQuotes = true;
-                        } else if (char === '"' && inQuotes && (i === row.length - 1 || row[i+1] === ',')) {
-                            inQuotes = false;
-                        } else if (char === ',' && !inQuotes) {
-                            columns.push(currentColumn.trim());
-                            currentColumn = '';
-                        } else {
-                            currentColumn += char;
-                        }
-                    }
-                    columns.push(currentColumn.trim());
-                    
-                    return columns;
+                    const cells = Array.from(row.querySelectorAll('td, th'));
+                    return cells.map(cell => {
+                        // Get the actual text content, preserving formatting
+                        let text = cell.textContent || cell.innerText || '';
+                        return text.trim();
+                    });
                 });
 
-                // Filter out empty rows
+                // Filter out completely empty rows
                 allData = data.filter(row => row.some(cell => cell && cell.trim() !== ''));
+                
+                console.log('Loaded data rows:', allData.length); // Debug
+                console.log('Sample rows:', allData.slice(0, 10)); // Debug
                 
                 // Extract title information
                 if (allData.length >= 5) {
@@ -517,15 +558,19 @@
             // Create data rows (from row 6 onwards)
             let activeRowIndex = 0;
             
-            filteredData.forEach(row => {
+            filteredData.forEach((row, index) => {
                 const tr = document.createElement('tr');
                 
                 // Get date from column B (index 1) for conditional formatting
-                const dateValue = row[1] || '';
+                const dateValue = row[1] ? row[1].toString().trim() : '';
+                console.log(`Row ${index + 6}: Date value: "${dateValue}"`); // Debug
+                
                 const isPast = isDatePast(dateValue);
+                console.log(`Row ${index + 6}: Is past: ${isPast}`); // Debug
                 
                 if (isPast) {
                     tr.classList.add('past-date');
+                    console.log(`Applied past-date class to row ${index + 6}`); // Debug
                 } else {
                     // Apply alternating colors only to active rows
                     if (activeRowIndex % 2 === 0) {
@@ -571,6 +616,14 @@
 
         // Auto-refresh every 5 minutes to get updates
         setInterval(loadData, 5 * 60 * 1000);
+
+        // Add a test button to manually check dates (remove in production)
+        window.testDateParsing = function(dateStr) {
+            console.log('Testing date:', dateStr);
+            const parsed = parseDate(dateStr);
+            console.log('Parsed:', parsed);
+            console.log('Is past:', isDatePast(dateStr));
+        };
     </script>
 </body>
 </html>
