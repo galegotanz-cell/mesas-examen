@@ -114,9 +114,25 @@
             background-color: #8989eb;
             color: white;
             font-weight: bold;
-            padding: 10px 15px;
+            padding: 15px 20px;
             border-radius: 6px;
             margin-bottom: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .title-section .title-text {
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .title-section .title-info {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin: 0;
+            color: white;
         }
 
         .exam-table th {
@@ -310,8 +326,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <!-- Logo de la Universidad - REEMPLAZA la URL con tu imagen -->
-            <img class="university-logo" src="URL_DE_TU_IMAGEN_DEL_LOGO" alt="Universidad Nacional de la Patagonia San Juan Bosco">
+            <!-- Logo de la Universidad -->
+            <img class="university-logo" src="https://galegotanz-cell.github.io/mesas-examen/logo.png" alt="Universidad Nacional de la Patagonia San Juan Bosco">
             
             <div class="header-content">
                 <h1>FACULTAD DE CIENCIAS NATURALES Y CIENCIAS DE LA SALUD</h1>
@@ -322,11 +338,11 @@
         <div id="titleSection" style="display: none;"></div>
 
         <div class="info-banner">
-            ℹ️ Utiliza el buscador para filtrar por materia, docente, fecha o cualquier información específica
+            ℹ️ Utiliza el buscador para filtrar por materia, fecha o cualquier información específica
         </div>
 
         <div class="search-container">
-            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por materia, docente, fecha...">
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por materia, fecha...">
         </div>
 
         <div id="loadingMessage" class="loading">
@@ -505,25 +521,43 @@
             
             if (titleData.titleA1 || titleData.titleBCD1) {
                 titleSection.style.display = 'block';
+                
+                // Process title and info for column A
+                const titleA1Content = titleData.titleA1 ? 
+                    `<div class="title-text">${titleData.titleA1}</div>
+                     <div class="title-info">${titleData.infoA2 || ''}</div>` : '';
+                
+                // Process title and info for columns BCD
+                const titleBCDContent = titleData.titleBCD1 ? 
+                    `<div class="title-text">${titleData.titleBCD1}</div>
+                     <div class="title-info">${titleData.infoBCD2 || ''}</div>` : '';
+                
+                // Check if general info is empty and provide default message
+                let generalInfoContent = '';
+                if (titleData.titleABCD3 && titleData.titleABCD3.trim() !== '') {
+                    const infoText = titleData.infoABCD4 && titleData.infoABCD4.trim() !== '' ? 
+                        titleData.infoABCD4 : 'No hay información disponible';
+                    
+                    generalInfoContent = `
+                        <div class="general-info">
+                            <div class="general-info-title">${titleData.titleABCD3}</div>
+                            <div class="general-info-content">${infoText}</div>
+                        </div>
+                    `;
+                }
+                
                 titleSection.innerHTML = `
                     <div class="title-section">
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
-                            <div>
-                                ${titleData.titleA1 ? `<div class="main-title">${titleData.titleA1}</div>` : ''}
-                                ${titleData.infoA2 ? `<div class="subtitle">${titleData.infoA2}</div>` : ''}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div class="main-title">
+                                ${titleA1Content}
                             </div>
-                            <div>
-                                ${titleData.titleBCD1 ? `<div class="main-title">${titleData.titleBCD1}</div>` : ''}
-                                ${titleData.infoBCD2 ? `<div class="subtitle">${titleData.infoBCD2}</div>` : ''}
+                            <div class="main-title">
+                                ${titleBCDContent}
                             </div>
                         </div>
                         
-                        ${titleData.titleABCD3 || titleData.infoABCD4 ? `
-                            <div class="general-info">
-                                ${titleData.titleABCD3 ? `<div class="general-info-title">${titleData.titleABCD3}</div>` : ''}
-                                ${titleData.infoABCD4 ? `<div class="general-info-content">${titleData.infoABCD4}</div>` : ''}
-                            </div>
-                        ` : ''}
+                        ${generalInfoContent}
                     </div>
                 `;
             }
