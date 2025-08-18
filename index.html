@@ -41,8 +41,8 @@
             position: absolute;
             top: 15px;
             left: 15px;
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             z-index: 10;
             object-fit: contain;
             border-radius: 50%;
@@ -251,14 +251,14 @@
             }
 
             .university-logo {
-                width: 60px;
-                height: 60px;
+                width: 75px;
+                height: 75px;
                 top: 10px;
                 left: 10px;
             }
 
             .header-content {
-                margin-left: 80px;
+                margin-left: 95px;
             }
 
             .search-container {
@@ -302,14 +302,14 @@
             }
 
             .university-logo {
-                width: 50px;
-                height: 50px;
+                width: 65px;
+                height: 65px;
                 top: 8px;
                 left: 8px;
             }
 
             .header-content {
-                margin-left: 65px;
+                margin-left: 80px;
             }
 
             .exam-table {
@@ -375,8 +375,8 @@
         let filteredData = [];
         let titleData = {};
 
-        // URL de tu Google Sheet (formato HTML para preservar mejor los datos)
-        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVNeNi7qQE2PotMhuWitzIh9y8M0oFLPC3ng7blHdDLScjzpx9WQPmXan6tL-d11hfQqTYW0SHamnp/pubhtml?gid=0&single=true&range=A1:D229&headers=false&chrome=false&widget=true';
+        // URL de tu Google Sheet (formato CSV - más confiable)
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVNeNi7qQE2PotMhuWitzIh9y8M0oFLPC3ng7blHdDLScjzpx9WQPmXan6tL-d11hfQqTYW0SHamnp/pub?gid=0&single=true&output=csv&range=A1:D229';
 
         function parseDate(dateString) {
             if (!dateString || dateString.trim() === '') return null;
@@ -460,26 +460,40 @@
 
         async function loadData() {
             try {
+                console.log('Intentando cargar datos desde:', SHEET_URL); // Debug
+                
                 const response = await fetch(SHEET_URL);
-                const htmlText = await response.text();
                 
-                // Parse HTML to extract table data
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
-                const table = doc.querySelector('table');
-                
-                if (!table) {
-                    throw new Error('No table found in response');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const rows = Array.from(table.querySelectorAll('tr'));
+                const csvText = await response.text();
+                console.log('CSV cargado, primeros 200 caracteres:', csvText.substring(0, 200)); // Debug
+                
+                const rows = csvText.split('\n');
                 const data = rows.map(row => {
-                    const cells = Array.from(row.querySelectorAll('td, th'));
-                    return cells.map(cell => {
-                        // Get the actual text content, preserving formatting
-                        let text = cell.textContent || cell.innerText || '';
-                        return text.trim();
-                    });
+                    // Simple CSV parsing - handles basic cases
+                    const columns = [];
+                    let currentColumn = '';
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"' && (i === 0 || row[i-1] === ',')) {
+                            inQuotes = true;
+                        } else if (char === '"' && inQuotes && (i === row.length - 1 || row[i+1] === ',')) {
+                            inQuotes = false;
+                        } else if (char === ',' && !inQuotes) {
+                            columns.push(currentColumn.trim());
+                            currentColumn = '';
+                        } else {
+                            currentColumn += char;
+                        }
+                    }
+                    columns.push(currentColumn.trim());
+                    
+                    return columns;
                 });
 
                 // Filter out completely empty rows
@@ -511,8 +525,15 @@
 
             } catch (error) {
                 console.error('Error loading data:', error);
+                console.error('Error details:', error.message);
                 document.getElementById('loadingMessage').style.display = 'none';
                 document.getElementById('errorMessage').style.display = 'block';
+                
+                // Show more specific error message
+                document.getElementById('errorMessage').innerHTML = `
+                    ❌ Error al cargar los datos: ${error.message}<br>
+                    <small>Verifica que tu Google Sheet esté publicado públicamente. <a href="#" onclick="location.reload()">Reintentar</a></small>
+                `;
             }
         }
 
